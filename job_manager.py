@@ -110,3 +110,15 @@ def complete_job(job_card_id, outcome_score):
         if eng_id and eng_id[0]:
             mark_engineer_available(eng_id[0])
         print(f"Job {job_card_id} marked completed with score {outcome_score}")
+
+def update_task_assignment(task_id, engineer_id):
+    with get_connection() as conn:
+        conn.execute("""
+            UPDATE job_task_mapping
+            SET Assigned_Engineer_ID = ?, Status = 'Assigned'
+            WHERE Task_ID = ?
+        """, (engineer_id, task_id))
+        conn.commit()
+        print(f"Engineer {engineer_id} assigned to Task {task_id}")
+
+
