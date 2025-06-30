@@ -2,9 +2,11 @@ import sqlite3
 import pandas as pd
 from recommender import recommend_engineers_memory_cf
 
-DB_PATH = "database/workshop.db"
+DB_PATH = "database/workshop.db"  # Adjust path if needed
+
 
 def get_connection():
+    print(f"Connecting to DB at: {DB_PATH}")
     return sqlite3.connect(DB_PATH)
 
 
@@ -15,14 +17,14 @@ def fetch_all_jobs():
 
 def fetch_unassigned_jobs():
     with get_connection() as conn:
-        return pd.read_sql("SELECT * FROM job_card WHERE Assigned_Engineer_ID IS NULL", conn)
+        return pd.read_sql("SELECT * FROM job_card WHERE Assigned_Engineer_Id IS NULL", conn)
 
 
 def update_job_assignment(job_card_id, engineer_id):
     with get_connection() as conn:
         conn.execute("""
             UPDATE job_card 
-            SET Assigned_Engineer_ID = ?, Status = 'Assigned' 
+            SET Assigned_Engineer_Id = ?, Status = 'Assigned' 
             WHERE Job_Card_ID = ?
         """, (engineer_id, job_card_id))
         conn.commit()
@@ -37,7 +39,7 @@ def fetch_available_engineers():
 def check_availability(engineer_id):
     with get_connection() as conn:
         cursor = conn.execute(
-            "SELECT Availability FROM engineer_profiles WHERE Engineer_ID = ?", (engineer_id,))
+            "SELECT Availability FROM engineer_profiles WHERE Engineer_Id = ?", (engineer_id,))
         row = cursor.fetchone()
         return row and row[0] == 'Yes'
 
@@ -45,7 +47,7 @@ def check_availability(engineer_id):
 def mark_engineer_unavailable(engineer_id):
     with get_connection() as conn:
         conn.execute(
-            "UPDATE engineer_profiles SET Availability = 'No' WHERE Engineer_ID = ?", (engineer_id,))
+            "UPDATE engineer_profiles SET Availability = 'No' WHERE Engineer_Id = ?", (engineer_id,))
         conn.commit()
         print(f"Engineer {engineer_id} marked as unavailable")
 
@@ -53,7 +55,7 @@ def mark_engineer_unavailable(engineer_id):
 def mark_engineer_available(engineer_id):
     with get_connection() as conn:
         conn.execute(
-            "UPDATE engineer_profiles SET Availability = 'Yes' WHERE Engineer_ID = ?", (engineer_id,))
+            "UPDATE engineer_profiles SET Availability = 'Yes' WHERE Engineer_Id = ?", (engineer_id,))
         conn.commit()
         print(f"Engineer {engineer_id} marked as available")
 
@@ -95,30 +97,30 @@ def assign_engineers_to_pending_jobs():
             print(f"[No available engineer for job {job_id}]")
 
 
-def complete_job(job_card_id, outcome_score):
+def complete_task(task_id, outcome_score):
     with get_connection() as conn:
-        conn.execute(
-            "UPDATE job_card SET Status = 'Completed', Outcome_Score = ? WHERE Job_Card_ID = ?",
-            (outcome_score, job_card_id)
-        )
+        conn.execute("""
+            UPDATE job_card
+            SET Status = 'Completed', Outcome_Score = ?
+            WHERE Task_ID = ? AND Engineer_Id IS NOT NULL
+        """, (outcome_score, task_id))
         conn.commit()
 
-        eng_id = conn.execute(
-            "SELECT Assigned_Engineer_ID FROM job_card WHERE Job_Card_ID = ?", (job_card_id,)
-        ).fetchone()
-        
+        eng_id = conn.execute("""
+            SELECT Engineer_Id FROM job_card WHERE Task_ID = ?
+        """, (task_id,)).fetchone()
+
         if eng_id and eng_id[0]:
             mark_engineer_available(eng_id[0])
-        print(f"Job {job_card_id} marked completed with score {outcome_score}")
+        print(f"Task {task_id} marked completed with score {outcome_score}")
+
 
 def update_task_assignment(task_id, engineer_id):
     with get_connection() as conn:
         conn.execute("""
-            UPDATE job_task_mapping
-            SET Assigned_Engineer_ID = ?, Status = 'Assigned'
-            WHERE Task_ID = ?
+            UPDATE job_card
+            SET Engineer_Id = ?, Status = 'Assigned'
+            WHERE Task_ID = ? AND Engineer_Id IS NULL
         """, (engineer_id, task_id))
         conn.commit()
         print(f"Engineer {engineer_id} assigned to Task {task_id}")
-
-
