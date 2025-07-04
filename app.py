@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from recommender import recommend_engineers_memory_cf
 import job_manager
+from gemini_mapping import get_matching_services 
 
 app = Flask(__name__)
 CORS(app)
@@ -73,6 +74,17 @@ def complete_task_endpoint():
         return jsonify({"error": str(e)}), 500
 
     return jsonify({"message": f"Task {task_id} marked as completed with score {outcome_score}"}), 200
+
+@app.route('/mapping_services', methods = ['POST'])
+def select_serv():
+    data = request.get_json()
+    user_input = data.get('description')
+
+    if not user_input:
+        return jsonify({"error": ""}), 400
+    
+    services = get_matching_services(user_input)
+    return jsonify({"services": services})
 
 
 if __name__ == "__main__":

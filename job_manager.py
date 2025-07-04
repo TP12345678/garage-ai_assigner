@@ -18,13 +18,12 @@ def fetch_all_jobs():
 
 def fetch_unassigned_jobs():
     with get_connection() as conn:
-        # ✅ Corrected from Assigned_Engineer_Id → Engineer_Id
         return pd.read_sql("SELECT * FROM job_card WHERE Engineer_Id IS NULL", conn)
 
 
 def update_job_assignment(job_id, engineer_id):
     with get_connection() as conn:
-        # ✅ Updated column names to match your DB
+
         conn.execute("""
             UPDATE job_card 
             SET Engineer_Id = ?, Status = 'Assigned' 
